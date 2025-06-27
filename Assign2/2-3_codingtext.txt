@@ -1,0 +1,12 @@
+#include <string>
+#include <vector>
+#include <algorithm>
+
+using namespace std;
+
+int solution(vector<vector<int>> dots) {
+    int width = max({dots[0][0], dots[1][0], dots[2][0]}) - min({dots[0][0], dots[1][0], dots[2][0]});
+    int height = max({dots[0][1], dots[1][1], dots[2][1]}) - min({dots[0][1], dots[1][1], dots[2][1]});
+    
+    return width * height;
+}
