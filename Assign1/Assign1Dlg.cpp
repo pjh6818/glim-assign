@@ -272,17 +272,23 @@ void CAssign1Dlg::OnBnClickedButtonReset()
 void CAssign1Dlg::OnEnChangeEditRadius()
 {
 	BOOL success;
-	int nValue = GetDlgItemInt(IDC_EDIT_RADIUS, &success);
+	int nRadius = GetDlgItemInt(IDC_EDIT_RADIUS, &success);
+	int nLineThickness = GetDlgItemInt(IDC_EDIT_THICKNESS, &success);
 
 	if (success)
 	{
-		m_nPointRadius = max(1, min(50, nValue)); // 사용자 설정 반지름 값을 1~50 범위가 되도록 설정
+		m_nPointRadius = max(1, min(50, nRadius)); // 사용자 설정 반지름 값을 1~50 범위가 되도록 설정
 
-		if (nValue < 1)
+		if (nRadius < 1)
 			SetDlgItemInt(IDC_EDIT_RADIUS, 1);
 
-		if (nValue > 50)
+		if (nRadius > 50)
 			SetDlgItemInt(IDC_EDIT_RADIUS, 50);
+
+		m_nLineThickness = max(1, min(m_nPointRadius, nLineThickness));
+
+		if (nLineThickness != m_nLineThickness)
+			SetDlgItemInt(IDC_EDIT_THICKNESS, m_nLineThickness);
 
 		Redraw();
 	}
@@ -291,16 +297,16 @@ void CAssign1Dlg::OnEnChangeEditRadius()
 void CAssign1Dlg::OnEnChangeEditThickness()
 {
 	BOOL success;
-	int nValue = GetDlgItemInt(IDC_EDIT_THICKNESS, &success);
+	int nLineThickness = GetDlgItemInt(IDC_EDIT_THICKNESS, &success);
 
 	if (success)
 	{
-		m_nLineThickness = max(1, min(m_nPointRadius, nValue)); // 사용자 설정 선두께 값을 1~반지름 범위가 되도록 설정
+		m_nLineThickness = max(1, min(m_nPointRadius, nLineThickness)); // 사용자 설정 선두께 값을 1~반지름 범위가 되도록 설정
 
-		if (nValue < 1)
+		if (nLineThickness < 1)
 			SetDlgItemInt(IDC_EDIT_THICKNESS, 1);
 
-		if (nValue > m_nPointRadius)
+		if (nLineThickness > m_nPointRadius)
 			SetDlgItemInt(IDC_EDIT_THICKNESS, m_nPointRadius);
 
 		Redraw();
