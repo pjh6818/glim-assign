@@ -342,6 +342,9 @@ UINT CAssign1Dlg::ThreadProc(LPVOID param)
 
 	for (int i = 0; i < 10; i++)
 	{
+		if (!pThis->m_isWorkingThread)
+			return 0;
+
 		pThis->PostMessage(MESSAGE_DRAW_RANDOM, NULL, NULL);
 
 		Sleep(500);
@@ -437,7 +440,7 @@ typedef std::pair<CPoint, double> Circle;
 
 std::pair<bool, Circle> calculateCircleFromThreem_points(CPoint p1, CPoint p2, CPoint p3)
 {
-	const double epsilon = 1e-9;
+	const double epsilon = 1e-2;
 
 	double a = (double)(p2.y - p1.y) / (p2.x - p1.x);
 	double b = (double)(p3.y - p2.y) / (p3.x - p2.x);
@@ -481,9 +484,9 @@ void CAssign1Dlg::DrawCircleAcross(unsigned char* fm, int gray)
 
 	if (!success)
 	{
-		AfxMessageBox(L"세 점이 일직선이 되어 원을 그릴 수 없습니다.");
-
 		Reset();
+
+		AfxMessageBox(L"세 점이 일직선이 되어 원을 그릴 수 없습니다.");
 		
 		return;
 	}
@@ -521,4 +524,6 @@ void CAssign1Dlg::Reset()
 	m_points.clear();
 
 	memset((unsigned char*)m_image.GetBits(), 255, m_image.GetWidth() * m_image.GetHeight());
+
+	m_isWorkingThread = false;
 }
