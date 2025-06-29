@@ -8,7 +8,6 @@
 #include "Assign1Dlg.h"
 #include "afxdialogex.h"
 
-
 #ifdef _DEBUG
 #define new DEBUG_NEW
 #pragma comment(linker, "/entry:WinMainCRTStartup /subsystem:console")
@@ -277,7 +276,7 @@ void CAssign1Dlg::OnEnChangeEditRadius()
 
 	if (success)
 	{
-		m_nPointRadius = max(1, min(50, nRadius)); // 사용자 설정 반지름 값을 1~50 범위가 되도록 설정
+		m_nPointRadius = std::max(1, std::min(50, nRadius)); // 사용자 설정 반지름 값을 1~50 범위가 되도록 설정
 
 		if (nRadius < 1)
 			SetDlgItemInt(IDC_EDIT_RADIUS, 1);
@@ -285,7 +284,7 @@ void CAssign1Dlg::OnEnChangeEditRadius()
 		if (nRadius > 50)
 			SetDlgItemInt(IDC_EDIT_RADIUS, 50);
 
-		m_nLineThickness = max(1, min(m_nPointRadius, nLineThickness));
+		m_nLineThickness = std::max(1, std::min(m_nPointRadius, nLineThickness));
 
 		if (nLineThickness != m_nLineThickness)
 			SetDlgItemInt(IDC_EDIT_THICKNESS, m_nLineThickness);
@@ -301,7 +300,7 @@ void CAssign1Dlg::OnEnChangeEditThickness()
 
 	if (success)
 	{
-		m_nLineThickness = max(1, min(m_nPointRadius, nLineThickness)); // 사용자 설정 선두께 값을 1~반지름 범위가 되도록 설정
+		m_nLineThickness = std::max(1, std::min(m_nPointRadius, nLineThickness)); // 사용자 설정 선두께 값을 1~반지름 범위가 되도록 설정
 
 		if (nLineThickness < 1)
 			SetDlgItemInt(IDC_EDIT_THICKNESS, 1);
@@ -344,14 +343,16 @@ UINT CAssign1Dlg::ThreadProc(LPVOID param)
 	{
 		if (!pThis->m_isWorkingThread)
 			return 0;
-
+		
 		pThis->PostMessage(MESSAGE_DRAW_RANDOM, NULL, NULL);
 
 		Sleep(500);
 	}
 
 	pThis->m_isWorkingThread = false;
-
+	
+	AfxMessageBox(L"랜덤 이동이 종료되었습니다.");
+	
 	return 0;
 }
 
@@ -436,43 +437,53 @@ void CAssign1Dlg::DrawCircle(unsigned char* fm, int x, int y, int radius, int gr
 	}
 }
 
-typedef std::pair<CPoint, double> Circle;
-
-std::pair<bool, Circle> calculateCircleFromThreem_points(CPoint p1, CPoint p2, CPoint p3)
+struct Circle
 {
-	const double epsilon = 1e-2;
+	double cx, cy, radius;
+};
 
-	double a = (double)(p2.y - p1.y) / (p2.x - p1.x);
-	double b = (double)(p3.y - p2.y) / (p3.x - p2.x);
-	double gradDiff = std::abs(a - b);
+std::pair<bool, Circle> calculateCircleFromThreem_points(double x1, double y1, double x2, double y2, double x3, double y3)
+{
+	const double GEOMETRIC_EPSILON = 1;
 
-	if (gradDiff < epsilon)
+	double areaTwice = (x2 - x1) * (y3 - y1) - (x3 - x1) * (y2 - y1);
+
+	double d12_sq = (x2 - x1) * (x2 - x1) + (y2 - y1) * (y2 - y1);
+	double d23_sq = (x3 - x2) * (x3 - x2) + (y3 - y2) * (y3 - y2);
+	double d31_sq = (x1 - x3) * (x1 - x3) + (y1 - y3) * (y1 - y3);
+
+	double max_dist_sq = std::max({ d12_sq, d23_sq, d31_sq });
+
+
+	if (max_dist_sq < std::numeric_limits<double>::epsilon())
 		return { false, {} };
-	
-	double A = 2 * (p2.x - p1.x);
-	double B = 2 * (p2.y - p1.y);
-	double C = p2.x * p2.x + p2.y * p2.y - p1.x * p1.x - p1.y * p1.y;
 
-	double D = 2 * (p3.x - p2.x);
-	double E = 2 * (p3.y - p2.y);
-	double F = p3.x * p3.x + p3.y * p3.y - p2.x * p2.x - p2.y * p2.y;
+	if (std::abs(areaTwice) < GEOMETRIC_EPSILON * std::sqrt(max_dist_sq))
+		return { false, {} };
+
+	double A = 2 * (x2 - x1);
+	double B = 2 * (y2 - y1);
+	double C = x2 * x2 + y2 * y2 - x1 * x1 - y1 * y1;
+
+	double D = 2 * (x3 - x2);
+	double E = 2 * (y3 - y2);
+	double F = x3 * x3 + y3 * y3 - x2 * x2 - y2 * y2;
 
 	double determinant = A * E - B * D;
+	const double DETERMINANT_EPSILON = 1e-6;
 
-	if (std::abs(determinant) < epsilon)
+	if (std::abs(determinant) < DETERMINANT_EPSILON)
 		return { false, {} };
 
-	CPoint center;
-	center.x = (C * E - F * B) / determinant;
-	center.y = (A * F - D * C) / determinant;
+	double cx = (C * E - F * B) / determinant;
+	double cy = (A * F - D * C) / determinant;
 
-	double radius;
+	double dx = x1 - cx;
+	double dy = y1 - cy;
 
-	double dx = p1.x - center.x;
-	double dy = p1.y - center.y;
-	radius = std::sqrt(dx * dx + dy * dy);
+	double radius = std::sqrt(dx * dx + dy * dy);
 
-	return { true, { center, radius } };
+	return { true, { cx, cy, radius } };
 }
 
 void CAssign1Dlg::DrawCircleAcross(unsigned char* fm, int gray)
@@ -480,9 +491,12 @@ void CAssign1Dlg::DrawCircleAcross(unsigned char* fm, int gray)
 	if (m_points.size() < 3)
 		return;
 
-	auto [success, result] = calculateCircleFromThreem_points(m_points[0], m_points[1], m_points[2]);
+	auto [success, result] = calculateCircleFromThreem_points(
+		(double)m_points[0].x, (double)m_points[0].y,
+		(double)m_points[1].x, (double)m_points[1].y,
+		(double)m_points[2].x, (double)m_points[2].y);
 
-	if (!success)
+	if (!success || result.radius > std::max(m_image.GetWidth(), m_image.GetHeight()) * 10)
 	{
 		Reset();
 
@@ -491,8 +505,8 @@ void CAssign1Dlg::DrawCircleAcross(unsigned char* fm, int gray)
 		return;
 	}
 
-	int radius = (int)(result.second + 0.5);
-	CPoint center = result.first;
+	int radius = (int)(result.radius + 0.5);
+	CPoint center((int)(result.cx + 0.5), (int)(result.cy + 0.5));
 
 	int outerRadius, innerRadius;
 

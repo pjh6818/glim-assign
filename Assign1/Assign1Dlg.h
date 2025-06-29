@@ -7,6 +7,8 @@
 #include <iostream>
 #include <vector>
 #include <random>
+#include <algorithm>
+
 
 #define MESSAGE_DRAW_RANDOM WM_USER
 
